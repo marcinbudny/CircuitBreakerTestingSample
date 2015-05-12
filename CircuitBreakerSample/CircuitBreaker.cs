@@ -14,11 +14,12 @@ namespace CircuitBreakerSample
     public class CircuitBreaker : ICircuitBreaker
     {
         private IState _currentState;
+        private CircuitBreakerContext _context;
 
         public CircuitBreaker(ITimeProvider timeProvider, IConfiguration configuration)
         {
-            var context = new CircuitBreakerContext(timeProvider, configuration);
-            _currentState = new ClosedState(context);
+            _context = new CircuitBreakerContext(timeProvider, configuration);
+            _currentState = new ClosedState(_context);
         }
 
         #region ICircuitBreaker
@@ -49,6 +50,12 @@ namespace CircuitBreakerSample
             if (expectedNewState != null)
                 _currentState = expectedNewState;
         }
+
+        public string GetStateName() { return _currentState.GetType().Name; }
+
+        public void GoToOpenState() { _currentState = new OpenState(_context); }
+
+        public void GoToHalfOpenState() { _currentState = new HalfOpenState(_context); }
 
         #endregion
 
