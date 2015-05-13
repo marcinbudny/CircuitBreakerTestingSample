@@ -1,5 +1,6 @@
 ﻿using System;
 using CircuitBreakerSample.Components;
+using Moq;
 using NUnit.Framework;
 
 namespace CircuitBreakerSample
@@ -9,64 +10,59 @@ namespace CircuitBreakerSample
     {
         class Fixture
         {
-            private readonly MockTimeProvider _timeProvider;
+            private readonly Mock<ITimeProvider> _timeProvider = new Mock<ITimeProvider>();
+            private readonly Mock<IConfiguration> _configuration = new Mock<IConfiguration>();
 
-            private int _failureCountThreshold = 2;
-            private TimeSpan _probingPeriod = TimeSpan.FromMinutes(2);
-            private TimeSpan _openPeriod = TimeSpan.FromMinutes(5);
-            private TimeSpan _halfOpenPeriod = TimeSpan.FromMinutes(7);
-            
+            private DateTime _now = new DateTime(2015, 05, 30, 13, 40, 00);
+
             public Fixture()
             {
-                _timeProvider = new MockTimeProvider();
+                WithFailureCountThreshold(2);
+                WithProbingPeriod(TimeSpan.FromMinutes(2));
+                WithOpenPeriod(TimeSpan.FromMinutes(5));
+                WithHalfOpenPeriod(TimeSpan.FromMinutes(7));
 
-                _timeProvider.SetNow(new DateTime(2015, 05, 30, 13, 40, 00));
+                _timeProvider.Setup(m => m.GetNow()).Returns(new DateTime(2015, 05, 30, 13, 40, 00));
             }
 
             public Fixture WithFailureCountThreshold(int threshold)
             {
-                _failureCountThreshold = threshold;
+                _configuration.Setup(m => m.FailureCountThreshold).Returns(threshold);
 
                 return this;
             }
 
             public Fixture WithProbingPeriod(TimeSpan probingPeriod)
             {
-                _probingPeriod = probingPeriod;
+                _configuration.Setup(m => m.ProbingPeriod).Returns(probingPeriod);
 
                 return this;
             }
 
             public Fixture WithOpenPeriod(TimeSpan openPeriod)
             {
-                _openPeriod = openPeriod;
+                _configuration.Setup(m => m.OpenPeriod).Returns(openPeriod);
 
                 return this;
             }
 
             public Fixture WithHalfOpenPeriod(TimeSpan halfOpenPeriod)
             {
-                _halfOpenPeriod = halfOpenPeriod;
+                _configuration.Setup(m => m.HalfOpenPeriod).Returns(halfOpenPeriod);
 
                 return this;
             }
 
             public void FastForward(TimeSpan moveBy)
             {
-                var now = _timeProvider.GetNow() + moveBy;
+                _now += moveBy;
 
-                _timeProvider.SetNow(now);
+                _timeProvider.Setup(m => m.GetNow()).Returns(_now);
             }
 
             public CircuitBreaker CreateCircuitBreaker()
             {
-                var configuration = new DefaultConfiguration(
-                    _failureCountThreshold,
-                    _probingPeriod,
-                    _openPeriod,
-                    _halfOpenPeriod);
-
-                return new CircuitBreaker(_timeProvider, configuration);
+                return new CircuitBreaker(_timeProvider.Object, _configuration.Object);
             }
         }
         

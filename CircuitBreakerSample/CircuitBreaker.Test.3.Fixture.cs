@@ -1,5 +1,6 @@
 ﻿using System;
 using CircuitBreakerSample.Components;
+using Moq;
 using NUnit.Framework;
 
 namespace CircuitBreakerSample
@@ -20,24 +21,26 @@ namespace CircuitBreakerSample
             // We've hidden our mocks and their configuraions inside of the 
             // Fixture class, so we won't have to think about it in test cases.
 
-            private readonly MockTimeProvider _timeProvider = new MockTimeProvider();
+            private readonly Mock<ITimeProvider> _timeProvider = new Mock<ITimeProvider>();
+            private readonly Mock<IConfiguration> _configuration = new Mock<IConfiguration>();
 
-            private readonly DefaultConfiguration _configuration = new DefaultConfiguration(
-                FailureCountThreshold,
-                TimeSpan.FromMinutes(ProbingPeriodInMinutes),
-                TimeSpan.FromMinutes(OpenPeriodInMinutes),
-                TimeSpan.FromMinutes(HalfOpenPeriodInMinutes));
+            private DateTime _now = new DateTime(2015, 05, 30, 13, 40, 00);
 
             public Fixture()
             {
-                _timeProvider.SetNow(new DateTime(2015, 05, 30, 13, 40, 00));
+                _timeProvider.Setup(m => m.GetNow()).Returns(_now);
+
+                _configuration.Setup(m => m.FailureCountThreshold).Returns(FailureCountThreshold);
+                _configuration.Setup(m => m.ProbingPeriod).Returns(TimeSpan.FromMinutes(ProbingPeriodInMinutes));
+                _configuration.Setup(m => m.OpenPeriod).Returns(TimeSpan.FromMinutes(OpenPeriodInMinutes));
+                _configuration.Setup(m => m.HalfOpenPeriod).Returns(TimeSpan.FromMinutes(HalfOpenPeriodInMinutes));
             }
 
             public void FastForward(TimeSpan moveBy)
             {
-                var now = _timeProvider.GetNow() + moveBy;
+                _now += moveBy;
 
-                _timeProvider.SetNow(now);
+                _timeProvider.Setup(m => m.GetNow()).Returns(_now);
             }
 
             // CircuitBreaker creation was also moved to Fixture, as this is heavy 
@@ -45,7 +48,7 @@ namespace CircuitBreakerSample
 
             public CircuitBreaker CreateCircuitBreaker()
             {
-                return new CircuitBreaker(_timeProvider, _configuration);
+                return new CircuitBreaker(_timeProvider.Object, _configuration.Object);
             }
         }
 
