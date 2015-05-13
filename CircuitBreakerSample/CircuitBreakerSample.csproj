@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="CircuitBreaker.cs" />
     <Compile Include="CircuitBreaker.Test.Nightmare.cs" />
+    <Compile Include="CircuitBreaker.Test.Fixture.cs" />
     <Compile Include="CircuitBreaker.Test.StructureAndNaming.cs" />
     <Compile Include="Components\Configuration.cs" />
     <Compile Include="Components\TimeProvider.cs" />
