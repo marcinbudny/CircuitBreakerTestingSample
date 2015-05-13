@@ -48,10 +48,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CircuitBreaker.cs" />
-    <Compile Include="CircuitBreaker.Test.3.Fixture.cs" />
-    <Compile Include="CircuitBreaker.Test.Nightmare.cs" />
-    <Compile Include="CircuitBreaker.Test.4.NoStateChecking.cs" />
-    <Compile Include="CircuitBreaker.Test.StructureAndNaming.cs" />
+    <Compile Include="CircuitBreakerTests.3.Fixture.cs" />
+    <Compile Include="CircuitBreakerTests.1.Nightmare.cs" />
+    <Compile Include="CircuitBreakerTests.4.NoStateChecking.cs" />
+    <Compile Include="CircuitBreakerTests.2.StructureAndNaming.cs" />
     <Compile Include="Components\Configuration.cs" />
     <Compile Include="Components\TimeProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

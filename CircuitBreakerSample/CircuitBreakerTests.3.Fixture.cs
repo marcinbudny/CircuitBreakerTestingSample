@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace CircuitBreakerSample
 {
     [TestFixture]
-    public class CircuitBreakerTests3Fixture
+    public class CircuitBreakerTests3WithFixture
     {
         // We've hidden some test "implementation details" like mocks and CircuitBreaker creation
         // inside of a Fixture class, so we won't have to think about it in test cases.
