@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace CircuitBreakerSample
 {
     [TestFixture]
-    public class CircuitBreakerTestsWithFixture
+    public class CircuitBreakerTests4NoStateChecking
     {
         class Fixture
         {
