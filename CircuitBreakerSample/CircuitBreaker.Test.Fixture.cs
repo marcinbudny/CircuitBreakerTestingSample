@@ -7,23 +7,14 @@ namespace CircuitBreakerSample
     [TestFixture]
     public class CircuitBreakerTestsWithFixture
     {
-        //private const int FailureCountThreshold = 2;
-        //private const int ProbingPeriodInMinutes = 1;
-        //private const int OpenPeriodInMinutes = 5;
-        //private const int HalfOpenPeriodInMinutes = 7;
-
-        //private MockTimeProvider _timeProvider;
-        //private DefaultConfiguration _configuration;
-        //private DateTime _now;
-
         class Fixture
         {
             private readonly MockTimeProvider _timeProvider;
 
             private int _failureCountThreshold = 2;
             private TimeSpan _probingPeriod = TimeSpan.FromMinutes(2);
-            private TimeSpan _openPeriodInMinutes = TimeSpan.FromMinutes(5);
-            private TimeSpan _halfOpenPeriodInMinutes = TimeSpan.FromMinutes(7);
+            private TimeSpan _openPeriod = TimeSpan.FromMinutes(5);
+            private TimeSpan _halfOpenPeriod = TimeSpan.FromMinutes(7);
             
             public Fixture()
             {
@@ -46,13 +37,25 @@ namespace CircuitBreakerSample
                 return this;
             }
 
-            public Fixture MoveTime(TimeSpan moveBy)
+            public Fixture WithOpenPeriod(TimeSpan openPeriod)
+            {
+                _openPeriod = openPeriod;
+
+                return this;
+            }
+
+            public Fixture WithHalfOpenPeriod(TimeSpan halfOpenPeriod)
+            {
+                _halfOpenPeriod = halfOpenPeriod;
+
+                return this;
+            }
+
+            public void FastForward(TimeSpan moveBy)
             {
                 var now = _timeProvider.GetNow() + moveBy;
 
                 _timeProvider.SetNow(now);
-
-                return this;
             }
 
             public CircuitBreaker CreateCircuitBreaker()
@@ -60,25 +63,12 @@ namespace CircuitBreakerSample
                 var configuration = new DefaultConfiguration(
                     _failureCountThreshold,
                     _probingPeriod,
-                    _openPeriodInMinutes,
-                    _halfOpenPeriodInMinutes);
+                    _openPeriod,
+                    _halfOpenPeriod);
 
                 return new CircuitBreaker(_timeProvider, configuration);
             }
         }
-
-        //[SetUp]
-        //public void Setup()
-        //{
-        //    _timeProvider = new MockTimeProvider();
-        //    _now = new DateTime(2015, 05, 30, 13, 40, 00);
-        //    _timeProvider.SetNow(_now);
-        //    _configuration = new DefaultConfiguration(
-        //        FailureCountThreshold, 
-        //        TimeSpan.FromMinutes(ProbingPeriodInMinutes), 
-        //        TimeSpan.FromMinutes(OpenPeriodInMinutes), 
-        //        TimeSpan.FromMinutes(HalfOpenPeriodInMinutes));
-        //}
         
         [Test]
         public void Should_Start_In_Closed_State() 
@@ -86,6 +76,7 @@ namespace CircuitBreakerSample
             // arrange
 
             var fixture = new Fixture();
+
             var circuitBreaker = fixture.CreateCircuitBreaker();
 
             // act
@@ -111,8 +102,6 @@ namespace CircuitBreakerSample
             circuitBreaker.ReportFailure();
             circuitBreaker.ReportFailure();
 
-            var result = circuitBreaker.ShouldCall();
-
             // assert
 
             Assert.That(circuitBreaker.ShouldCall(), Is.True);
@@ -133,7 +122,7 @@ namespace CircuitBreakerSample
 
             circuitBreaker.ReportFailure();
 
-            fixture.MoveTime(TimeSpan.FromMinutes(5));
+            fixture.FastForward(TimeSpan.FromMinutes(5));
 
             circuitBreaker.ReportFailure();
 
@@ -162,91 +151,78 @@ namespace CircuitBreakerSample
             Assert.That(circuitBreaker.ShouldCall(), Is.False);
         }
 
-        //[Test]
-        //public void Should_Transition_From_Open_To_Half_Open_After_Open_Period()
-        //{
-        //    // arrange
-        //    var circuitBreaker = new CircuitBreaker(_timeProvider, _configuration);
-        //    circuitBreaker.GoToOpenState();
+        [Test]
+        public void Should_Transition_From_Open_To_Half_Open_After_Open_Period()
+        {
+            // arrange
 
-        //    // act
-        //    _now += TimeSpan.FromMinutes(OpenPeriodInMinutes + 1);
-        //    _timeProvider.SetNow(_now);
-        //    circuitBreaker.ShouldCall(); // this will trigger state transition
+            var fixture = new Fixture()
+                .WithFailureCountThreshold(2)
+                .WithOpenPeriod(TimeSpan.FromMinutes(2));
 
-        //    // assert
-        //    Assert.That(circuitBreaker.GetStateName(), Is.EqualTo("HalfOpenState"));
-        //}
+            var circuitBreaker = fixture.CreateCircuitBreaker();
 
-        //[Test]
-        //public void Failure_While_Half_Open_Should_Trigger_Open_State()
-        //{
-        //    // arrange
-        //    var circuitBreaker = new CircuitBreaker(_timeProvider, _configuration);
-        //    circuitBreaker.GoToHalfOpenState();
+            // act
 
-        //    // act
-        //    circuitBreaker.ReportFailure();
+            circuitBreaker.ReportFailure();
+            circuitBreaker.ReportFailure();
 
-        //    // assert
-        //    Assert.That(circuitBreaker.GetStateName(), Is.EqualTo("OpenState"));
-        //}
+            fixture.FastForward(TimeSpan.FromMinutes(3));
 
-        //[Test]
-        //public void Should_Transition_From_Half_Open_To_Closed_After_No_Failure_During_Half_Open_Period()
-        //{
-        //    // arrange
-        //    var circuitBreaker = new CircuitBreaker(_timeProvider, _configuration);
-        //    circuitBreaker.GoToOpenState();
+            // assert
 
-        //    // act
-        //    _now += TimeSpan.FromMinutes(OpenPeriodInMinutes + 1);
-        //    _timeProvider.SetNow(_now);
-        //    circuitBreaker.ShouldCall(); // this will trigger state transition
+            Assert.That(circuitBreaker.ShouldCall(), Is.True);
+        }
 
-        //    // assert
-        //    Assert.That(circuitBreaker.GetStateName(), Is.EqualTo("HalfOpenState"));
-        //}
+        [Test]
+        public void Failure_While_Half_Open_Should_Trigger_Open_State()
+        {
+            // arrange
 
-        //[Test]
-        //public void In_Closed_State_ShouldCall_Returns_True()
-        //{
-        //    // arrange
-        //    var circuitBreaker = new CircuitBreaker(_timeProvider, _configuration);
+            var fixture = new Fixture()
+                .WithFailureCountThreshold(2)
+                .WithOpenPeriod(TimeSpan.FromMinutes(2));
 
-        //    // act
-        //    var result = circuitBreaker.ShouldCall();
+            var circuitBreaker = fixture.CreateCircuitBreaker();
 
-        //    // assert
-        //    Assert.That(result, Is.True);
-        //}
+            // act
 
-        //[Test]
-        //public void In_Open_State_ShouldCall_Returns_False()
-        //{
-        //    // arrange
-        //    var circuitBreaker = new CircuitBreaker(_timeProvider, _configuration);
-        //    circuitBreaker.GoToOpenState();
+            circuitBreaker.ReportFailure();
+            circuitBreaker.ReportFailure();
 
-        //    // act
-        //    var result = circuitBreaker.ShouldCall();
+            fixture.FastForward(TimeSpan.FromMinutes(3));
 
-        //    // assert
-        //    Assert.That(result, Is.False);
-        //}
+            circuitBreaker.ReportFailure();
 
-        //[Test]
-        //public void In_Open_State_ShouldCall_Returns_True()
-        //{
-        //    // arrange
-        //    var circuitBreaker = new CircuitBreaker(_timeProvider, _configuration);
-        //    circuitBreaker.GoToHalfOpenState();
+            // assert
 
-        //    // act
-        //    var result = circuitBreaker.ShouldCall();
+            Assert.That(circuitBreaker.ShouldCall(), Is.False);
+        }
 
-        //    // assert
-        //    Assert.That(result, Is.True);
-        //}
+        [Test]
+        public void Should_Transition_From_Half_Open_To_Closed_After_No_Failure_During_Half_Open_Period()
+        {
+            // arrange
+
+            var fixture = new Fixture()
+                .WithFailureCountThreshold(2)
+                .WithOpenPeriod(TimeSpan.FromMinutes(2))
+                .WithHalfOpenPeriod(TimeSpan.FromMinutes(3));
+
+            var circuitBreaker = fixture.CreateCircuitBreaker();
+
+            // act
+
+            circuitBreaker.ReportFailure();
+            circuitBreaker.ReportFailure();
+
+            fixture.FastForward(TimeSpan.FromMinutes(6));
+
+            circuitBreaker.ReportFailure();
+
+            // assert
+
+            Assert.That(circuitBreaker.ShouldCall(), Is.True);
+        }
     }
 }
