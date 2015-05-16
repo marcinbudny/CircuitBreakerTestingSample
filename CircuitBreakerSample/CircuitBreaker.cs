@@ -13,94 +13,73 @@ namespace CircuitBreakerSample
     
     public class CircuitBreaker : ICircuitBreaker
     {
+        private readonly ITimeProvider _timeProvider;
+        private readonly IConfiguration _configuration;
+
         private IState _currentState;
-        private CircuitBreakerContext _context;
 
         public CircuitBreaker(ITimeProvider timeProvider, IConfiguration configuration)
         {
-            _context = new CircuitBreakerContext(timeProvider, configuration);
-            _currentState = new ClosedState(_context);
+            _timeProvider = timeProvider;
+            _configuration = configuration;
+            _currentState = new ClosedState(_timeProvider, _configuration);
         }
 
         #region ICircuitBreaker
 
         public bool ShouldCall()
         {
-            ChangeStateIfNeeded();
+            ChangeStateToExpected();
 
             var result = _currentState.ShouldCall();
 
-            ChangeStateIfNeeded();
+            ChangeStateToExpected();
 
             return result;
         }
 
         public void ReportFailure()
         {
-            ChangeStateIfNeeded();
+            ChangeStateToExpected();
 
             _currentState.ReportFailure();
 
-            ChangeStateIfNeeded();
+            ChangeStateToExpected();
         }
 
-        private void ChangeStateIfNeeded()
+        private void ChangeStateToExpected()
         {
-            var expectedNewState = _currentState.GetExpectedNewState();
-            if (expectedNewState != null)
-                _currentState = expectedNewState;
+            _currentState = _currentState.GetExpectedNewState();
         }
 
         public string GetStateName() { return _currentState.GetType().Name; }
 
-        public void GoToOpenState() { _currentState = new OpenState(_context); }
+        public void GoToOpenState() { _currentState = new OpenState(_timeProvider, _configuration); }
 
-        public void GoToHalfOpenState() { _currentState = new HalfOpenState(_context); }
+        public void GoToHalfOpenState() { _currentState = new HalfOpenState(_timeProvider, _configuration); }
 
         #endregion
 
 
-        #region Type declarations
+        #region States
 
-        public interface IState : ICircuitBreaker
+        private interface IState : ICircuitBreaker
         {
             IState GetExpectedNewState();
         }
 
-        public interface IContext
-        {
-            ITimeProvider TimeProvider { get; }
-            IConfiguration Configuration { get; }
-        }
-
-        #endregion
-
-        #region IContext
-
-        public class CircuitBreakerContext : IContext
-        {
-            public CircuitBreakerContext(ITimeProvider timeProvider, IConfiguration configuration)
-            {
-                TimeProvider = timeProvider;
-                Configuration = configuration;
-            }
-
-            public ITimeProvider TimeProvider { get; private set; }
-            public IConfiguration Configuration { get; private set; }
-
-        }
-
-        #endregion
-
-        #region States 
-
         private class ClosedState : IState
         {
-            private readonly IContext _context;
-            private List<DateTime> _failureDates = new List<DateTime>(); 
-            
-            
-            public ClosedState(IContext context) { _context = context; }
+            private readonly ITimeProvider _timeProvider;
+            private readonly IConfiguration _configuration;
+
+            private List<DateTime> _failureDates = new List<DateTime>();
+
+            public ClosedState(ITimeProvider timeProvider, IConfiguration configuration)
+            {
+                _timeProvider = timeProvider;
+                _configuration = configuration;
+            }
 
 
             public bool ShouldCall() { return true; }
@@ -115,19 +94,19 @@ namespace CircuitBreakerSample
                 ClearExpiredFailures();
 
                 if (FailureThresholdReached())
-                    return new OpenState(_context);
-                return null;
+                    return new OpenState(_timeProvider, _configuration);
+                return this;
             }
 
             private bool FailureThresholdReached()
             {
-                return _failureDates.Count >= _context.Configuration.FailureCountThreshold;
+                return _failureDates.Count >= _configuration.FailureCountThreshold;
             }
 
             private void ClearExpiredFailures()
             {
-                var now = _context.TimeProvider.GetNow();
-                var probingPeriodStart = now - _context.Configuration.ProbingPeriod;
+                var now = _timeProvider.GetNow();
+                var probingPeriodStart = now - _configuration.ProbingPeriod;
 
                 _failureDates = _failureDates
                     .Where(d => d >= probingPeriodStart)
@@ -136,20 +115,22 @@ namespace CircuitBreakerSample
 
             private void AddFailureDate()
             {
-                var now = _context.TimeProvider.GetNow();
+                var now = _timeProvider.GetNow();
                 _failureDates.Add(now);
             }
         }
 
         private class OpenState : IState
         {
-            private readonly IContext _context;
+            private readonly ITimeProvider _timeProvider;
+            private readonly IConfiguration _configuration;
             private readonly DateTime _enteredAt;
 
-            public OpenState(IContext context)
+            public OpenState(ITimeProvider timeProvider, IConfiguration configuration)
             {
-                _context = context;
-                _enteredAt = context.TimeProvider.GetNow();
+                _timeProvider = timeProvider;
+                _configuration = configuration;
+                _enteredAt = _timeProvider.GetNow();
             }
 
             public bool ShouldCall() { return false; }
@@ -159,38 +140,44 @@ namespace CircuitBreakerSample
             public IState GetExpectedNewState()
             {
                 if(BothOpenAndHalfOpenPeriodFinished())
-                    return new ClosedState(_context);
+                    return new ClosedState(_timeProvider, _configuration);
                 if (OpenPeriodFinished())
-                    return new HalfOpenState(_context);
-                return null;
+                    return new HalfOpenState(_timeProvider, _configuration);
+                return this;
             }
 
             private bool BothOpenAndHalfOpenPeriodFinished()
             {
                 return _enteredAt + 
-                       _context.Configuration.OpenPeriod + 
-                       _context.Configuration.HalfOpenPeriod 
+                       _configuration.OpenPeriod + 
+                       _configuration.HalfOpenPeriod 
                        <
-                       _context.TimeProvider.GetNow();
+                       _timeProvider.GetNow();
             }
 
             private bool OpenPeriodFinished()
             {
-                return _enteredAt + _context.Configuration.OpenPeriod < _context.TimeProvider.GetNow();
+                return _enteredAt + 
+                       _configuration.OpenPeriod 
+                       < 
+                       _timeProvider.GetNow();
             }
         }
 
         private class HalfOpenState : IState
         {
-            private readonly IContext _context;
+            private readonly ITimeProvider _timeProvider;
+            private readonly IConfiguration _configuration;
+
             private readonly DateTime _enteredAt;
             
             private bool _failureReported = false;
 
-            public HalfOpenState(IContext context)
+            public HalfOpenState(ITimeProvider timeProvider, IConfiguration configuration)
             {
-                _context = context;
-                _enteredAt = context.TimeProvider.GetNow();
+                _timeProvider = timeProvider;
+                _configuration = configuration;
+                _enteredAt = _timeProvider.GetNow();
             }
 
             public bool ShouldCall() { return true; }
@@ -200,19 +187,23 @@ namespace CircuitBreakerSample
             public IState GetExpectedNewState()
             {
                 if(_failureReported)
-                    return new OpenState(_context);
+                    return new OpenState(_timeProvider, _configuration);
                 if (HalfOpenPeriodFinished())
-                    return new ClosedState(_context);
-                return null;
+                    return new ClosedState(_timeProvider, _configuration);
+                return this;
             }
 
             private bool HalfOpenPeriodFinished()
             {
-                return _enteredAt + _context.Configuration.HalfOpenPeriod < _context.TimeProvider.GetNow();
+                return _enteredAt + 
+                       _configuration.HalfOpenPeriod 
+                       < 
+                       _timeProvider.GetNow();
             }
         }
 
         #endregion
+
 
     }
 
