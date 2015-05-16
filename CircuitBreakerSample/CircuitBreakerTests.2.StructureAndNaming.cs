@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace CircuitBreakerSample
 {
     [TestFixture]
-    public class CircuitBreakerTestsWithStructureAndNaming
+    public class CircuitBreakerTests2WithStructureAndNaming
     {
         private const int FailureCountThreshold = 2;
         private const int ProbingPeriodInMinutes = 1;

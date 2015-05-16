@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace CircuitBreakerSample
 {
     [TestFixture]
-    public class CircuitBreakerTestsNightmare
+    public class CircuitBreakerTests1Nightmare
     {
         [Test]
         public void TestCircuitBreaker()
