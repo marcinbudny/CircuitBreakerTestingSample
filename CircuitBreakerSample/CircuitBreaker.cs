@@ -109,7 +109,7 @@ namespace CircuitBreakerSample
                 var probingPeriodStart = now - _configuration.ProbingPeriod;
 
                 _failureDates = _failureDates
-                    .Where(d => d >= probingPeriodStart)
+                    .Where(d => d > probingPeriodStart)
                     .ToList();
             }
 
@@ -151,7 +151,7 @@ namespace CircuitBreakerSample
                 return _enteredAt + 
                        _configuration.OpenPeriod + 
                        _configuration.HalfOpenPeriod 
-                       <
+                       <=
                        _timeProvider.GetNow();
             }
 
@@ -159,7 +159,7 @@ namespace CircuitBreakerSample
             {
                 return _enteredAt + 
                        _configuration.OpenPeriod 
-                       < 
+                       <= 
                        _timeProvider.GetNow();
             }
         }
@@ -197,7 +197,7 @@ namespace CircuitBreakerSample
             {
                 return _enteredAt + 
                        _configuration.HalfOpenPeriod 
-                       < 
+                       <= 
                        _timeProvider.GetNow();
             }
         }

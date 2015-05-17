@@ -220,5 +220,28 @@ namespace CircuitBreakerSample
 
             Assert.That(circuitBreaker.ShouldCall(), Is.True);
         }
+
+        [Test]
+        public void Should_Transition_From_Open_State_To_Closed_State_If_HalfOpen_State_Period_Is_Zero()
+        {
+            // arrange
+            var fixture = new Fixture()
+                .WithFailureCountThreshold(2)
+                .WithOpenPeriod(TimeSpan.FromMinutes(2))
+                .WithHalfOpenPeriod(TimeSpan.FromMinutes(0));
+
+            var circuitBreaker = fixture.CreateCircuitBreaker();
+
+            circuitBreaker.GoToOpenState();
+
+            // act
+            circuitBreaker.ReportFailure();
+            circuitBreaker.ReportFailure();
+            fixture.FastForward(TimeSpan.FromMinutes(2));
+            circuitBreaker.ShouldCall(); // this will trigger state transition
+
+            // assert
+            Assert.That(circuitBreaker.GetStateName(), Is.EqualTo("ClosedState"));
+        }
     }
 }
