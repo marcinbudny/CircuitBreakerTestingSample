@@ -17,11 +17,6 @@ namespace CircuitBreakerSample
 
             public Fixture()
             {
-                WithFailureCountThreshold(2);
-                WithProbingPeriod(TimeSpan.FromMinutes(2));
-                WithOpenPeriod(TimeSpan.FromMinutes(5));
-                WithHalfOpenPeriod(TimeSpan.FromMinutes(7));
-
                 _timeProvider.Setup(m => m.GetNow()).Returns(new DateTime(2015, 05, 30, 13, 40, 00));
             }
 
@@ -71,7 +66,8 @@ namespace CircuitBreakerSample
         {
             // arrange
 
-            var fixture = new Fixture();
+            var fixture = new Fixture()
+                .WithFailureCountThreshold(2);
 
             var circuitBreaker = fixture.CreateCircuitBreaker();
 
@@ -133,7 +129,9 @@ namespace CircuitBreakerSample
             // arrange
 
             var fixture = new Fixture()
-                .WithFailureCountThreshold(2);
+                .WithProbingPeriod(TimeSpan.FromMinutes(1))
+                .WithFailureCountThreshold(2)
+                .WithOpenPeriod(TimeSpan.FromMinutes(1));
 
             var circuitBreaker = fixture.CreateCircuitBreaker();
 
@@ -176,8 +174,10 @@ namespace CircuitBreakerSample
             // arrange
 
             var fixture = new Fixture()
+                .WithProbingPeriod(TimeSpan.FromMinutes(1))
                 .WithFailureCountThreshold(2)
-                .WithOpenPeriod(TimeSpan.FromMinutes(2));
+                .WithOpenPeriod(TimeSpan.FromMinutes(2))
+                .WithHalfOpenPeriod(TimeSpan.FromMinutes(5));
 
             var circuitBreaker = fixture.CreateCircuitBreaker();
 
@@ -186,7 +186,7 @@ namespace CircuitBreakerSample
             circuitBreaker.ReportFailure();
             circuitBreaker.ReportFailure();
 
-            fixture.FastForward(TimeSpan.FromMinutes(3));
+            fixture.FastForward(TimeSpan.FromMinutes(2));
 
             circuitBreaker.ReportFailure();
 
