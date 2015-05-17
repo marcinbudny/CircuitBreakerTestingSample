@@ -27,10 +27,18 @@ namespace CircuitBreakerSample
 
             _configuration = new Mock<IConfiguration>();
 
-            _configuration.Setup(m => m.FailureCountThreshold).Returns(FailureCountThreshold);
-            _configuration.Setup(m => m.ProbingPeriod).Returns(TimeSpan.FromMinutes(ProbingPeriodInMinutes));
-            _configuration.Setup(m => m.OpenPeriod).Returns(TimeSpan.FromMinutes(OpenPeriodInMinutes));
-            _configuration.Setup(m => m.HalfOpenPeriod).Returns(TimeSpan.FromMinutes(HalfOpenPeriodInMinutes));
+            _configuration
+                .Setup(m => m.FailureCountThreshold)
+                .Returns(FailureCountThreshold);
+            _configuration
+                .Setup(m => m.ProbingPeriod)
+                .Returns(TimeSpan.FromMinutes(ProbingPeriodInMinutes));
+            _configuration
+                .Setup(m => m.OpenPeriod)
+                .Returns(TimeSpan.FromMinutes(OpenPeriodInMinutes));
+            _configuration
+                .Setup(m => m.HalfOpenPeriod)
+                .Returns(TimeSpan.FromMinutes(HalfOpenPeriodInMinutes));
         }
         
         [Test]
@@ -46,7 +54,7 @@ namespace CircuitBreakerSample
             Assert.That(circuitBreaker.GetStateName(), Is.EqualTo("ClosedState"));
         }
 
-        [Test(Description = "Should stay in closed state if numer of failures under threshold")]
+        [Test]
         public void Should_Stay_In_Closed_State_If_Number_Of_Failures_Under_Threshold()
         {
             // arrange
