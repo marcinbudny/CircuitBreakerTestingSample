@@ -55,6 +55,8 @@ namespace CircuitBreakerSample
             _currentState = _currentState.GetExpectedNewState();
         }
 
+        // OMG! special methods for testing purposes?!
+
         public string GetStateName() { return _currentState.GetType().Name; }
 
         public void GoToOpenState() { _currentState = new OpenState(_timeProvider, _configuration); }

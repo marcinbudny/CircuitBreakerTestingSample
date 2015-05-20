@@ -40,6 +40,26 @@ namespace CircuitBreakerSample
                 .Setup(m => m.HalfOpenPeriod)
                 .Returns(TimeSpan.FromMinutes(HalfOpenPeriodInMinutes));
         }
+
+        [Test]
+        public void Should_Transition_From_Open_State_To_Closed_State_If_HalfOpen_State_Period_Is_Zero()
+        {
+            // arrange
+            var circuitBreaker = new CircuitBreaker(_timeProvider.Object, _configuration.Object);
+            circuitBreaker.GoToOpenState();
+
+            _configuration
+                .Setup(c => c.HalfOpenPeriod)
+                .Returns(TimeSpan.FromMinutes(0));
+
+            // act
+            _now += TimeSpan.FromMinutes(OpenPeriodInMinutes);
+            _timeProvider.Setup(m => m.GetNow()).Returns(_now);
+            circuitBreaker.ShouldCall(); // this will trigger state transition
+
+            // assert
+            Assert.That(circuitBreaker.GetStateName(), Is.EqualTo("ClosedState"));
+        }
         
         [Test]
         public void Should_Start_In_Closed_State() 
@@ -136,26 +156,6 @@ namespace CircuitBreakerSample
 
             // act
             _now += TimeSpan.FromMinutes(HalfOpenPeriodInMinutes + 1);
-            _timeProvider.Setup(m => m.GetNow()).Returns(_now);
-            circuitBreaker.ShouldCall(); // this will trigger state transition
-
-            // assert
-            Assert.That(circuitBreaker.GetStateName(), Is.EqualTo("ClosedState"));
-        }
-
-        [Test]
-        public void Should_Transition_From_Open_State_To_Closed_State_If_HalfOpen_State_Period_Is_Zero()
-        {
-            // arrange
-            var circuitBreaker = new CircuitBreaker(_timeProvider.Object, _configuration.Object);
-            circuitBreaker.GoToOpenState();
-
-            _configuration
-                .Setup(c => c.HalfOpenPeriod)
-                .Returns(TimeSpan.FromMinutes(0));
-
-            // act
-            _now += TimeSpan.FromMinutes(OpenPeriodInMinutes);
             _timeProvider.Setup(m => m.GetNow()).Returns(_now);
             circuitBreaker.ShouldCall(); // this will trigger state transition
 
