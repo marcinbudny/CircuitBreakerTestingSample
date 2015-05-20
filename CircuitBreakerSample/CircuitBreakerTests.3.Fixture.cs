@@ -61,6 +61,27 @@ namespace CircuitBreakerSample
             }
         }
 
+        [Test]
+        public void Should_Transition_From_Open_State_To_Closed_State_If_HalfOpen_State_Period_Is_Zero()
+        {
+            // arrange
+            var fixture = new Fixture()
+                .WithFailureCountThreshold(2)
+                .WithOpenPeriod(TimeSpan.FromMinutes(2))
+                .WithHalfOpenPeriod(TimeSpan.FromMinutes(0));
+
+            var circuitBreaker = fixture.CreateCircuitBreaker();
+
+            circuitBreaker.GoToOpenState();
+
+            // act
+            fixture.FastForward(TimeSpan.FromMinutes(2));
+            circuitBreaker.ShouldCall(); // this will trigger state transition
+
+            // assert
+            Assert.That(circuitBreaker.GetStateName(), Is.EqualTo("ClosedState"));
+        }
+
 
         [Test]
         public void Should_Start_In_Closed_State()
@@ -182,27 +203,6 @@ namespace CircuitBreakerSample
 
             // act
             fixture.FastForward(TimeSpan.FromMinutes(3));
-            circuitBreaker.ShouldCall(); // this will trigger state transition
-
-            // assert
-            Assert.That(circuitBreaker.GetStateName(), Is.EqualTo("ClosedState"));
-        }
-
-        [Test]
-        public void Should_Transition_From_Open_State_To_Closed_State_If_HalfOpen_State_Period_Is_Zero()
-        {
-            // arrange
-            var fixture = new Fixture()
-                .WithFailureCountThreshold(2)
-                .WithOpenPeriod(TimeSpan.FromMinutes(2))
-                .WithHalfOpenPeriod(TimeSpan.FromMinutes(0));
-
-            var circuitBreaker = fixture.CreateCircuitBreaker();
-
-            circuitBreaker.GoToOpenState();
-
-            // act
-            fixture.FastForward(TimeSpan.FromMinutes(2));
             circuitBreaker.ShouldCall(); // this will trigger state transition
 
             // assert

@@ -47,6 +47,9 @@ namespace CircuitBreakerSample
             ChangeStateToExpected();
         }
 
+        #endregion
+
+
         private void ChangeStateToExpected()
         {
             _currentState = _currentState.GetExpectedNewState();
@@ -57,8 +60,6 @@ namespace CircuitBreakerSample
         public void GoToOpenState() { _currentState = new OpenState(_timeProvider, _configuration); }
 
         public void GoToHalfOpenState() { _currentState = new HalfOpenState(_timeProvider, _configuration); }
-
-        #endregion
 
 
         #region States
