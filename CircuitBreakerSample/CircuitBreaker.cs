@@ -49,6 +49,7 @@ namespace CircuitBreakerSample
 
         #endregion
 
+        #region Some details
 
         private void ChangeStateToExpected()
         {
@@ -63,6 +64,7 @@ namespace CircuitBreakerSample
 
         public void GoToHalfOpenState() { _currentState = new HalfOpenState(_timeProvider, _configuration); }
 
+        #endregion
 
         #region States
 
